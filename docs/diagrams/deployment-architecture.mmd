@@ -1,0 +1,49 @@
+flowchart TB
+  subgraph Users[Clients]
+    Mobile[Mobile browser]
+    Desktop[Desktop browser]
+  end
+  subgraph Edge[Internet edge]
+    DNS[DNS]
+    CDN[CDN for Angular assets]
+    WAF[WAF / TLS / rate limits]
+  end
+  subgraph Runtime[Container platform]
+    API[NestJS API replicas]
+    Worker[Worker replicas]
+  end
+  subgraph Managed[Managed data services]
+    DB[(PostgreSQL HA\nbackups + PITR)]
+    Cache[(Redis\nrate limits + BullMQ)]
+    Files[(Object storage\nprivate bucket)]
+  end
+  subgraph Integrations[External providers]
+    Mail[Transactional email]
+    Error[Error tracking / tracing]
+  end
+  Mobile --> DNS
+  Desktop --> DNS
+  DNS --> CDN
+  DNS --> WAF
+  CDN --> Mobile
+  CDN --> Desktop
+  WAF --> API
+  API --> DB
+  API --> Cache
+  API --> Files
+  API --> Error
+  Cache --> Worker
+  Worker --> DB
+  Worker --> Files
+  Worker --> Mail
+  Worker --> Error
+  classDef user fill:#f8fafc,stroke:#64748b,color:#0f172a;
+  classDef edge fill:#fff7ed,stroke:#ea580c,color:#7c2d12;
+  classDef run fill:#eff6ff,stroke:#2563eb,color:#1e3a8a;
+  classDef data fill:#ecfdf5,stroke:#059669,color:#064e3b;
+  classDef ext fill:#fdf4ff,stroke:#a21caf,color:#701a75;
+  class Mobile,Desktop user;
+  class DNS,CDN,WAF edge;
+  class API,Worker run;
+  class DB,Cache,Files data;
+  class Mail,Error ext;

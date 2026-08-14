@@ -1,0 +1,348 @@
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserStatus {
+  ACTIVE
+  PENDING_VERIFICATION
+  SUSPENDED
+  DELETED
+}
+
+enum WorkspaceType {
+  PERSONAL
+  FAMILY
+}
+
+enum MembershipRole {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+enum MembershipStatus {
+  INVITED
+  ACTIVE
+  SUSPENDED
+  REMOVED
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+  EXPIRED
+}
+
+enum CategoryKind {
+  EXPENSE
+  INCOME
+}
+
+enum AccountType {
+  CASH
+  BANK
+  CREDIT_CARD
+  SAVINGS
+  INVESTMENT
+  DIGITAL_WALLET
+  OTHER
+}
+
+enum AccountVisibility {
+  PERSONAL
+  SHARED
+}
+
+enum TransactionType {
+  EXPENSE
+  INCOME
+  TRANSFER
+}
+
+enum MovementType {
+  DEBIT
+  CREDIT
+}
+
+enum BudgetScope {
+  WORKSPACE
+  PERSONAL
+  CATEGORY
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  LOGIN
+  LOGOUT
+  INVITE
+  ROLE_CHANGE
+  MEMBER_REMOVE
+  PASSWORD_RESET
+  OWNERSHIP_TRANSFER
+  EXPORT
+}
+
+model User {
+  id                  String              @id @default(uuid()) @db.Uuid
+  email               String              @unique @db.VarChar(320)
+  passwordHash        String              @map("password_hash") @db.VarChar(255)
+  firstName           String              @map("first_name") @db.VarChar(80)
+  lastName            String              @map("last_name") @db.VarChar(80)
+  avatarUrl           String?             @map("avatar_url") @db.VarChar(500)
+  status              UserStatus          @default(PENDING_VERIFICATION)
+  emailVerifiedAt     DateTime?           @map("email_verified_at")
+  createdAt           DateTime            @default(now()) @map("created_at")
+  updatedAt           DateTime            @updatedAt @map("updated_at")
+  sessions            Session[]
+  memberships         WorkspaceMembership[]
+  ownedWorkspaces      Workspace[]         @relation("WorkspaceOwner")
+  sentInvitations     Invitation[]        @relation("InvitationSender")
+  auditLogs           AuditLog[]
+  createdCategories   Category[]           @relation("CategoryCreator")
+  deletedTransactions Transaction[]        @relation("TransactionDeleter")
+
+  @@index([status])
+  @@map("users")
+}
+
+model Session {
+  id               String    @id @default(uuid()) @db.Uuid
+  userId           String    @map("user_id") @db.Uuid
+  refreshTokenHash  String    @unique @map("refresh_token_hash") @db.VarChar(255)
+  tokenFamily      String    @map("token_family") @db.VarChar(64)
+  ipHash           String?   @map("ip_hash") @db.VarChar(128)
+  userAgent        String?   @map("user_agent") @db.VarChar(500)
+  expiresAt        DateTime  @map("expires_at")
+  revokedAt        DateTime? @map("revoked_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+  @@index([tokenFamily])
+  @@map("sessions")
+}
+
+model Workspace {
+  id                    String               @id @default(uuid()) @db.Uuid
+  name                  String               @db.VarChar(120)
+  type                  WorkspaceType
+  ownerUserId           String               @map("owner_user_id") @db.Uuid
+  currency              String               @default("USD") @db.VarChar(3)
+  timezone              String               @default("UTC") @db.VarChar(64)
+  createdAt             DateTime             @default(now()) @map("created_at")
+  updatedAt             DateTime             @updatedAt @map("updated_at")
+  ownerUser             User                 @relation("WorkspaceOwner", fields: [ownerUserId], references: [id])
+  memberships           WorkspaceMembership[]
+  invitations           Invitation[]
+  categories            Category[]
+  accounts              Account[]
+  transactions          Transaction[]
+  movements             AccountMovement[]
+  budgets               Budget[]
+  auditLogs             AuditLog[]
+
+  @@index([type])
+  @@map("workspaces")
+}
+
+model WorkspaceMembership {
+  id                    String        @id @default(uuid()) @db.Uuid
+  workspaceId           String        @map("workspace_id") @db.Uuid
+  userId                String        @map("user_id") @db.Uuid
+  role                  MembershipRole @default(MEMBER)
+  status                MembershipStatus @default(ACTIVE)
+  displayName           String?       @map("display_name") @db.VarChar(120)
+  createdAt             DateTime      @default(now()) @map("created_at")
+  updatedAt             DateTime      @updatedAt @map("updated_at")
+  workspace             Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user                  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdTransactions   Transaction[] @relation("TransactionCreator")
+  paidTransactions      Transaction[] @relation("TransactionPayer")
+  deletedTransactions   Transaction[] @relation("TransactionDeleterMembership")
+  ownedAccounts         Account[]     @relation("AccountOwner")
+  createdCategories     Category[]    @relation("CategoryMembershipCreator")
+  personalBudgets       Budget[]      @relation("BudgetOwner")
+
+  @@unique([workspaceId, userId])
+  @@index([userId, status])
+  @@index([workspaceId, status])
+  @@map("workspace_memberships")
+}
+
+model Invitation {
+  id              String           @id @default(uuid()) @db.Uuid
+  workspaceId     String           @map("workspace_id") @db.Uuid
+  email           String           @db.VarChar(320)
+  role            MembershipRole  @default(MEMBER)
+  tokenHash       String           @unique @map("token_hash") @db.VarChar(255)
+  status          InvitationStatus @default(PENDING)
+  expiresAt       DateTime         @map("expires_at")
+  acceptedAt      DateTime?        @map("accepted_at")
+  revokedAt       DateTime?        @map("revoked_at")
+  invitedByUserId String           @map("invited_by_user_id") @db.Uuid
+  createdAt       DateTime         @default(now()) @map("created_at")
+  workspace       Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  invitedByUser   User             @relation("InvitationSender", fields: [invitedByUserId], references: [id])
+
+  @@index([workspaceId, status])
+  @@index([email, status])
+  @@map("invitations")
+}
+
+model Category {
+  id                  String              @id @default(uuid()) @db.Uuid
+  workspaceId         String              @map("workspace_id") @db.Uuid
+  kind                CategoryKind       @default(EXPENSE)
+  name                String              @db.VarChar(80)
+  normalizedName      String              @map("normalized_name") @db.VarChar(80)
+  icon                String?             @db.VarChar(80)
+  color               String?             @db.VarChar(16)
+  parentId            String?             @map("parent_id") @db.Uuid
+  position            Int                 @default(0)
+  isActive            Boolean             @default(true) @map("is_active")
+  createdByUserId     String              @map("created_by_user_id") @db.Uuid
+  createdByMembershipId String            @map("created_by_membership_id") @db.Uuid
+  createdAt           DateTime            @default(now()) @map("created_at")
+  updatedAt           DateTime            @updatedAt @map("updated_at")
+  workspace           Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  parent              Category?          @relation("CategoryTree", fields: [parentId], references: [id])
+  children            Category[]         @relation("CategoryTree")
+  createdByUser       User                @relation("CategoryCreator", fields: [createdByUserId], references: [id])
+  createdByMembership WorkspaceMembership @relation("CategoryMembershipCreator", fields: [createdByMembershipId], references: [id])
+  transactions        Transaction[]
+  budgets             Budget[]
+
+  @@unique([workspaceId, kind, parentId, normalizedName])
+  @@index([workspaceId, isActive, position])
+  @@map("categories")
+}
+
+model Account {
+  id                  String               @id @default(uuid()) @db.Uuid
+  workspaceId         String               @map("workspace_id") @db.Uuid
+  ownerMembershipId   String?              @map("owner_membership_id") @db.Uuid
+  visibility          AccountVisibility    @default(SHARED)
+  name                String               @db.VarChar(120)
+  type                AccountType
+  currency            String               @db.VarChar(3)
+  initialBalanceMinor BigInt               @default(0) @map("initial_balance_minor")
+  currentBalanceMinor BigInt               @default(0) @map("current_balance_minor")
+  isActive             Boolean              @default(true) @map("is_active")
+  createdAt            DateTime             @default(now()) @map("created_at")
+  updatedAt            DateTime             @updatedAt @map("updated_at")
+  workspace            Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  ownerMembership     WorkspaceMembership? @relation("AccountOwner", fields: [ownerMembershipId], references: [id])
+  sourceTransactions   Transaction[]        @relation("TransactionSourceAccount")
+  destinationTransactions Transaction[]     @relation("TransactionDestinationAccount")
+  movements            AccountMovement[]
+
+  @@index([workspaceId, isActive])
+  @@index([workspaceId, ownerMembershipId])
+  @@map("accounts")
+}
+
+model Transaction {
+  id                         String               @id @default(uuid()) @db.Uuid
+  workspaceId                String               @map("workspace_id") @db.Uuid
+  type                       TransactionType
+  amountMinor                BigInt               @map("amount_minor")
+  currency                   String               @db.VarChar(3)
+  categoryId                 String?              @map("category_id") @db.Uuid
+  accountId                  String?              @map("account_id") @db.Uuid
+  destinationAccountId       String?              @map("destination_account_id") @db.Uuid
+  createdByMembershipId      String               @map("created_by_membership_id") @db.Uuid
+  paidByMembershipId         String?              @map("paid_by_membership_id") @db.Uuid
+  deletedByMembershipId      String?              @map("deleted_by_membership_id") @db.Uuid
+  occurredAt                 DateTime             @map("occurred_at")
+  description                String               @db.VarChar(160)
+  notes                      String?              @db.VarChar(2000)
+  receiptUrl                 String?              @map("receipt_url") @db.VarChar(1000)
+  deletedAt                  DateTime?            @map("deleted_at")
+  createdAt                  DateTime             @default(now()) @map("created_at")
+  updatedAt                  DateTime             @updatedAt @map("updated_at")
+  workspace                  Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  category                   Category?            @relation(fields: [categoryId], references: [id])
+  sourceAccount              Account?             @relation("TransactionSourceAccount", fields: [accountId], references: [id])
+  destinationAccount         Account?             @relation("TransactionDestinationAccount", fields: [destinationAccountId], references: [id])
+  createdByMembership        WorkspaceMembership  @relation("TransactionCreator", fields: [createdByMembershipId], references: [id])
+  paidByMembership           WorkspaceMembership? @relation("TransactionPayer", fields: [paidByMembershipId], references: [id])
+  deletedByMembership        WorkspaceMembership? @relation("TransactionDeleterMembership", fields: [deletedByMembershipId], references: [id])
+  deletedByUser              User?                @relation("TransactionDeleter", fields: [deletedByUserId], references: [id])
+  deletedByUserId            String?              @map("deleted_by_user_id") @db.Uuid
+  movements                  AccountMovement[]
+
+  @@index([workspaceId, occurredAt, id])
+  @@index([workspaceId, type, occurredAt])
+  @@index([workspaceId, categoryId, occurredAt])
+  @@index([workspaceId, createdByMembershipId, occurredAt])
+  @@index([workspaceId, deletedAt])
+  @@map("transactions")
+}
+
+model AccountMovement {
+  id             String         @id @default(uuid()) @db.Uuid
+  workspaceId    String         @map("workspace_id") @db.Uuid
+  transactionId  String         @map("transaction_id") @db.Uuid
+  accountId      String         @map("account_id") @db.Uuid
+  movementType   MovementType   @map("movement_type")
+  amountMinor    BigInt         @map("amount_minor")
+  occurredAt     DateTime       @map("occurred_at")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  workspace      Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  transaction    Transaction    @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  account        Account        @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([transactionId, accountId, movementType])
+  @@index([workspaceId, accountId, occurredAt])
+  @@map("account_movements")
+}
+
+model Budget {
+  id                  String               @id @default(uuid()) @db.Uuid
+  workspaceId         String               @map("workspace_id") @db.Uuid
+  scope               BudgetScope
+  ownerMembershipId   String?              @map("owner_membership_id") @db.Uuid
+  categoryId          String?              @map("category_id") @db.Uuid
+  periodStart         DateTime             @map("period_start") @db.Date
+  periodEnd           DateTime             @map("period_end") @db.Date
+  amountMinor         BigInt               @map("amount_minor")
+  currency            String               @db.VarChar(3)
+  createdAt           DateTime             @default(now()) @map("created_at")
+  updatedAt           DateTime             @updatedAt @map("updated_at")
+  workspace           Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  ownerMembership     WorkspaceMembership? @relation("BudgetOwner", fields: [ownerMembershipId], references: [id])
+  category            Category?            @relation(fields: [categoryId], references: [id])
+
+  @@index([workspaceId, periodStart, periodEnd])
+  @@index([workspaceId, categoryId])
+  @@map("budgets")
+}
+
+model AuditLog {
+  id           String       @id @default(uuid()) @db.Uuid
+  workspaceId  String?      @map("workspace_id") @db.Uuid
+  actorUserId  String?      @map("actor_user_id") @db.Uuid
+  action       AuditAction
+  entityType   String       @map("entity_type") @db.VarChar(80)
+  entityId     String?      @map("entity_id") @db.Uuid
+  metadata     Json?
+  ipHash       String?      @map("ip_hash") @db.VarChar(128)
+  userAgent    String?      @map("user_agent") @db.VarChar(500)
+  createdAt    DateTime     @default(now()) @map("created_at")
+  workspace    Workspace?   @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  actorUser    User?        @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, createdAt])
+  @@index([entityType, entityId, createdAt])
+  @@map("audit_logs")
+}

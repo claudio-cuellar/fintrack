@@ -1,0 +1,120 @@
+erDiagram
+  USER ||--o{ SESSION : has
+  USER ||--o{ WORKSPACE_MEMBERSHIP : joins
+  WORKSPACE ||--o{ WORKSPACE_MEMBERSHIP : contains
+  WORKSPACE ||--o{ INVITATION : issues
+  WORKSPACE ||--o{ CATEGORY : owns
+  CATEGORY ||--o{ CATEGORY : parent_of
+  WORKSPACE ||--o{ ACCOUNT : owns
+  WORKSPACE ||--o{ TRANSACTION : owns
+  WORKSPACE ||--o{ BUDGET : owns
+  WORKSPACE ||--o{ AUDIT_LOG : records
+  WORKSPACE_MEMBERSHIP ||--o{ TRANSACTION : creates
+  WORKSPACE_MEMBERSHIP ||--o{ TRANSACTION : pays
+  WORKSPACE_MEMBERSHIP ||--o{ ACCOUNT : owns_personally
+  CATEGORY ||--o{ TRANSACTION : classifies
+  ACCOUNT ||--o{ TRANSACTION : source_account
+  ACCOUNT ||--o{ TRANSACTION : destination_account
+  TRANSACTION ||--o{ ACCOUNT_MOVEMENT : produces
+  ACCOUNT ||--o{ ACCOUNT_MOVEMENT : receives
+  CATEGORY ||--o{ BUDGET : scopes
+  WORKSPACE_MEMBERSHIP ||--o{ BUDGET : owns_personally
+
+  USER {
+    uuid id PK
+    string email UK
+    string password_hash
+    string status
+    datetime created_at
+  }
+  SESSION {
+    uuid id PK
+    uuid user_id FK
+    string refresh_token_hash UK
+    datetime expires_at
+    datetime revoked_at
+  }
+  WORKSPACE {
+    uuid id PK
+    string name
+    string type
+    uuid owner_membership_id
+    string currency
+    string timezone
+  }
+  WORKSPACE_MEMBERSHIP {
+    uuid id PK
+    uuid workspace_id FK
+    uuid user_id FK
+    string role
+    string status
+    string display_name
+  }
+  INVITATION {
+    uuid id PK
+    uuid workspace_id FK
+    string email
+    string role
+    string token_hash UK
+    datetime expires_at
+  }
+  CATEGORY {
+    uuid id PK
+    uuid workspace_id FK
+    uuid parent_id FK
+    string name
+    string icon
+    int position
+    boolean is_active
+  }
+  ACCOUNT {
+    uuid id PK
+    uuid workspace_id FK
+    uuid owner_membership_id FK
+    string visibility
+    string type
+    string currency
+    bigint initial_balance_minor
+    boolean is_active
+  }
+  TRANSACTION {
+    uuid id PK
+    uuid workspace_id FK
+    string type
+    bigint amount_minor
+    string currency
+    uuid category_id FK
+    uuid account_id FK
+    uuid destination_account_id FK
+    uuid created_by_membership_id FK
+    uuid paid_by_membership_id FK
+    datetime occurred_at
+    datetime deleted_at
+  }
+  ACCOUNT_MOVEMENT {
+    uuid id PK
+    uuid transaction_id FK
+    uuid account_id FK
+    string movement_type
+    bigint amount_minor
+  }
+  BUDGET {
+    uuid id PK
+    uuid workspace_id FK
+    string scope
+    uuid owner_membership_id FK
+    uuid category_id FK
+    date period_start
+    date period_end
+    bigint amount_minor
+  }
+  AUDIT_LOG {
+    uuid id PK
+    uuid workspace_id FK
+    uuid actor_user_id FK
+    string action
+    string entity_type
+    uuid entity_id
+    json metadata
+    datetime created_at
+  }

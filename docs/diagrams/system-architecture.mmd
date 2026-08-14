@@ -1,0 +1,29 @@
+flowchart LR
+  Browser[Angular 21 SPA\nStandalone + Signals + Reactive Forms] --> CDN[CDN / Static hosting]
+  Browser --> Edge[HTTPS Edge\nWAF + CORS + Request ID]
+  Edge --> LB[Load Balancer]
+  LB --> API1[NestJS API replica 1]
+  LB --> API2[NestJS API replica 2]
+  API1 --> Auth[Auth + Workspace Context]
+  API1 --> Domains[Domain Modules\nTransactions / Accounts / Categories / Budgets]
+  API1 --> Reports[Reports + Aggregates]
+  API2 --> Auth
+  API2 --> Domains
+  API2 --> Reports
+  API1 --> PG[(PostgreSQL\nSource of Truth)]
+  API2 --> PG
+  API1 --> Redis[(Redis\nRate limits + Cache + Queue)]
+  API2 --> Redis
+  API1 --> Object[(S3/R2\nPrivate Receipts)]
+  API2 --> Object
+  Redis --> Worker[Async Worker\nExports / Mail / Notifications]
+  Worker --> PG
+  Worker --> Object
+  Worker --> Mail[Email provider]
+  Reports -. derived summaries .-> PG
+  classDef store fill:#ecfdf5,stroke:#059669,color:#064e3b;
+  classDef app fill:#eff6ff,stroke:#2563eb,color:#1e3a8a;
+  classDef edge fill:#fff7ed,stroke:#ea580c,color:#7c2d12;
+  class PG,Redis,Object store;
+  class API1,API2,Worker,Auth,Domains,Reports app;
+  class Edge,LB,CDN edge;
