@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
+import { I18nService, Language } from '../../core/i18n/i18n.service';
 import { WorkspaceService } from '../../core/workspace/workspace.service';
 
 @Component({
@@ -12,24 +13,27 @@ import { WorkspaceService } from '../../core/workspace/workspace.service';
         <div class="brand"><span class="brand-mark">F</span><span>FinTrack</span></div>
         @if (workspace.selected(); as current) {
           <div class="workspace-card">
-            <span class="workspace-label">ACTIVE WORKSPACE</span>
+            <span class="workspace-label">{{ i18n.text('workspace.active') }}</span>
             <strong>{{ current.name }}</strong>
-            <span class="pill">{{ current.type === 'FAMILY' ? 'Shared family' : 'Personal' }}</span>
+            <span class="pill">{{ current.type === 'FAMILY' ? i18n.text('workspace.sharedFamily') : i18n.text('workspace.personal') }}</span>
           </div>
         }
-        <nav aria-label="Primary navigation">
-          <a routerLink="/dashboard" routerLinkActive="active"><span>◒</span> Dashboard</a>
-          <a routerLink="/transactions" routerLinkActive="active"><span>↗</span> Transactions</a>
-          <a routerLink="/accounts" routerLinkActive="active"><span>▣</span> Accounts</a>
-          <a routerLink="/categories" routerLinkActive="active"><span>⌘</span> Categories</a>
-          <a routerLink="/family" routerLinkActive="active"><span>♧</span> Family</a>
+        <nav [attr.aria-label]="i18n.text('nav.primary')">
+          <a routerLink="/dashboard" routerLinkActive="active"><span>◒</span> {{ i18n.text('nav.dashboard') }}</a>
+          <a routerLink="/transactions" routerLinkActive="active"><span>↗</span> {{ i18n.text('nav.transactions') }}</a>
+          <a routerLink="/accounts" routerLinkActive="active"><span>▣</span> {{ i18n.text('nav.accounts') }}</a>
+          <a routerLink="/categories" routerLinkActive="active"><span>⌘</span> {{ i18n.text('nav.categories') }}</a>
+          <a routerLink="/family" routerLinkActive="active"><span>♧</span> {{ i18n.text('nav.family') }}</a>
         </nav>
-        <div class="sidebar-foot"><a class="settings-link" href="#" (click)="logout(); $event.preventDefault()">Sign out</a></div>
+        <div class="sidebar-foot"><a class="settings-link" href="#" (click)="logout(); $event.preventDefault()">{{ i18n.text('auth.signOut') }}</a></div>
       </aside>
       <main class="content">
         <header class="topbar">
-          <div><span class="topbar-context">{{ workspace.selected()?.name || 'Your workspace' }}</span><span class="topbar-divider">/</span><span class="topbar-page">Finance overview</span></div>
-          @if (auth.user(); as user) { <div class="user-chip"><span class="avatar">{{ user.firstName[0] }}{{ user.lastName[0] }}</span><span>{{ user.firstName }} {{ user.lastName }}</span></div> }
+          <div><span class="topbar-context">{{ workspace.selected()?.name || i18n.text('topbar.yourWorkspace') }}</span><span class="topbar-divider">/</span><span class="topbar-page">{{ i18n.text('topbar.financeOverview') }}</span></div>
+          <div class="topbar-actions">
+            <label class="language-control"><span>{{ i18n.text('settings.language') }}</span><select [value]="i18n.language()" (change)="changeLanguage($event)" [attr.aria-label]="i18n.text('settings.language')"><option value="en">{{ i18n.text('language.english') }}</option><option value="es">{{ i18n.text('language.spanish') }}</option></select></label>
+            @if (auth.user(); as user) { <div class="user-chip"><span class="avatar">{{ user.firstName[0] }}{{ user.lastName[0] }}</span><span>{{ user.firstName }} {{ user.lastName }}</span></div> }
+          </div>
         </header>
         <router-outlet />
       </main>
@@ -57,14 +61,19 @@ import { WorkspaceService } from '../../core/workspace/workspace.service';
     .topbar-context { font-weight:800; color:#0f172a; }
     .topbar-divider { color:#cbd5e1; padding:0 .65rem; }
     .topbar-page { color:#94a3b8; font-size:.88rem; }
+    .topbar-actions { display:flex; align-items:center; gap:1rem; }
+    .language-control { display:flex; align-items:center; gap:.4rem; color:#64748b; font-size:.72rem; font-weight:750; }
+    .language-control select { border:1px solid #cbd5e1; border-radius:8px; background:#fff; color:#334155; padding:.35rem .45rem; font:inherit; cursor:pointer; }
     .user-chip { display:flex; align-items:center; gap:.55rem; color:#334155; font-size:.85rem; font-weight:700; }
     .avatar { display:grid; place-items:center; width:2rem; height:2rem; border-radius:50%; background:#dbeafe; color:#1d4ed8; font-size:.72rem; }
-    @media (max-width:760px) { .shell { display:block; } .sidebar { min-height:unset; padding:.75rem; display:block; } .brand { margin-bottom:.7rem; } .workspace-card { display:none; } nav { display:flex; overflow-x:auto; gap:.3rem; } nav a { white-space:nowrap; padding:.55rem .7rem; } nav a span { display:none; } .sidebar-foot { display:none; } .topbar { padding:0 1rem; min-height:3.6rem; } .topbar-page, .topbar-divider { display:none; } .user-chip span:last-child { display:none; } }
+    @media (max-width:760px) { .shell { display:block; } .sidebar { min-height:unset; padding:.75rem; display:block; } .brand { margin-bottom:.7rem; } .workspace-card { display:none; } nav { display:flex; overflow-x:auto; gap:.3rem; } nav a { white-space:nowrap; padding:.55rem .7rem; } nav a span { display:none; } .sidebar-foot { display:none; } .topbar { padding:0 1rem; min-height:3.6rem; } .topbar-page, .topbar-divider, .language-control span { display:none; } .topbar-actions { gap:.5rem; } .user-chip span:last-child { display:none; } }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AppShellComponent {
   readonly auth = inject(AuthService);
+  readonly i18n = inject(I18nService);
   readonly workspace = inject(WorkspaceService);
   logout() { this.auth.logout(); }
+  changeLanguage(event: Event): void { this.i18n.setLanguage((event.target as HTMLSelectElement).value as Language); }
 }

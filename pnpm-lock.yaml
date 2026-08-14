@@ -62,7 +62,7 @@ importers:
         specifier: ^4.0.1
         version: 4.0.1
       pg:
-        specifier: ^8.23.0
+        specifier: ^8.16.3
         version: 8.23.0
       reflect-metadata:
         specifier: ^0.2.2
@@ -96,7 +96,7 @@ importers:
         specifier: ^4.0.1
         version: 4.0.1
       '@types/pg':
-        specifier: ^8.21.0
+        specifier: ^8.15.5
         version: 8.21.0
       '@types/supertest':
         specifier: ^6.0.3

@@ -43,9 +43,6 @@
             "production": { "buildTarget": "fintrack-web:build:production" },
             "development": { "buildTarget": "fintrack-web:build:development" }
           },
-          "options": {
-            "proxyConfig": "proxy.conf.json"
-          },
           "defaultConfiguration": "development"
         },
         "test": {
