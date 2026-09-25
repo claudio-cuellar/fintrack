@@ -1,0 +1,39 @@
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { I18nService } from '../../core/i18n/i18n.service';
+
+interface TransactionRow { id: string; description: string; category: string; account: string; member: string; date: string; amount: string; type: 'EXPENSE' | 'INCOME'; }
+
+@Component({
+  standalone: true,
+  imports: [FormsModule],
+  template: `
+    <div class="page">
+      <div class="page-header"><div><div class="eyebrow">{{ i18n.text('transactions.workspaceLedger') }}</div><h1>{{ i18n.text('transactions.title') }}</h1><p class="muted">{{ i18n.text('transactions.subtitle') }}</p></div><button class="btn btn-primary" (click)="showForm.set(true)">{{ i18n.text('dashboard.addExpense') }}</button></div>
+      @if (showForm()) { <section class="card card-pad composer"><div class="section-title"><div><h2>{{ i18n.text('transactions.newExpense') }}</h2><p class="muted">{{ i18n.text('transactions.fastEntry') }}</p></div><button class="btn btn-ghost" type="button" (click)="showForm.set(false)">{{ i18n.text('common.close') }}</button></div><form class="form-grid" (ngSubmit)="save()"><div class="field"><label for="amount">{{ i18n.text('common.amount') }}</label><input id="amount" name="amount" type="number" min="0.01" step="0.01" [(ngModel)]="draft.amount" required /></div><div class="field"><label for="date">{{ i18n.text('common.date') }}</label><input id="date" name="date" type="date" [(ngModel)]="draft.date" required /></div><div class="field"><label for="category">{{ i18n.text('common.category') }}</label><select id="category" name="category" [(ngModel)]="draft.category"><option value="category.food">{{ i18n.text('category.food') }}</option><option value="category.housing">{{ i18n.text('category.housing') }}</option><option value="category.transportation">{{ i18n.text('category.transportation') }}</option><option value="category.utilities">{{ i18n.text('category.utilities') }}</option><option value="category.other">{{ i18n.text('category.other') }}</option></select></div><div class="field"><label for="account">{{ i18n.text('common.account') }}</label><select id="account" name="account" [(ngModel)]="draft.account"><option value="account.sharedChecking">{{ i18n.text('account.sharedChecking') }}</option><option value="account.cash">{{ i18n.text('account.cash') }}</option><option value="account.creditCard">{{ i18n.text('account.creditCard') }}</option></select></div><div class="field full"><label for="description">{{ i18n.text('common.description') }}</label><input id="description" name="description" [(ngModel)]="draft.description" [placeholder]="i18n.text('transactions.descriptionPlaceholder')" required /></div><div class="actions full"><button class="btn btn-secondary" type="button" (click)="showForm.set(false)">{{ i18n.text('common.cancel') }}</button><button class="btn btn-primary" type="submit">{{ i18n.text('common.saveExpense') }}</button></div></form></section> }
+      <section class="card card-pad"><div class="filters"><div class="search"><span>⌕</span><input [attr.aria-label]="i18n.text('transactions.search')" [placeholder]="i18n.text('transactions.search')" [(ngModel)]="search" /></div><select [attr.aria-label]="i18n.text('common.category')"><option>{{ i18n.text('transactions.allCategories') }}</option><option>{{ i18n.text('category.food') }}</option><option>{{ i18n.text('category.housing') }}</option><option>{{ i18n.text('category.transportation') }}</option></select><select [attr.aria-label]="i18n.text('family.members')"><option>{{ i18n.text('transactions.allMembers') }}</option><option>{{ i18n.text('member.claudio') }}</option><option>{{ i18n.text('member.maria') }}</option><option>{{ i18n.text('member.juan') }}</option></select></div><div class="table-wrap"><table><thead><tr><th>{{ i18n.text('table.transaction') }}</th><th>{{ i18n.text('table.category') }}</th><th>{{ i18n.text('common.account') }}</th><th>{{ i18n.text('table.addedBy') }}</th><th>{{ i18n.text('table.date') }}</th><th>{{ i18n.text('table.amount') }}</th><th></th></tr></thead><tbody>@for (item of filtered(); track item.id) {<tr><td><strong>{{ i18n.text(item.description) }}</strong></td><td>{{ i18n.text(item.category) }}</td><td>{{ i18n.text(item.account) }}</td><td>{{ i18n.text(item.member) }}</td><td>{{ i18n.text(item.date) }}</td><td [class.amount-expense]="item.type === 'EXPENSE'" [class.amount-income]="item.type === 'INCOME'">{{ item.type === 'EXPENSE' ? '-' : '+' }}{{ item.amount }}</td><td><button class="icon-btn" [attr.aria-label]="i18n.text('transactions.moreActions')">•••</button></td></tr>}</tbody></table></div>@if (!filtered().length) { <div class="empty">{{ i18n.text('transactions.noMatches') }}</div> }<div class="pagination"><span>{{ i18n.text('transactions.showing', { count: filtered().length }) }}</span><button class="btn btn-secondary">{{ i18n.text('transactions.loadMore') }}</button></div></section>
+    </div>
+  `,
+  styles: [`
+    .composer { margin-bottom:1rem; border-color:#bfdbfe; box-shadow:0 12px 30px rgba(37,99,235,.08); } .section-title { display:flex; justify-content:space-between; gap:1rem; margin-bottom:1.2rem; } .section-title h2 { margin-bottom:.25rem; } .section-title p { margin:0; font-size:.8rem; }
+    .filters { display:flex; flex-wrap:wrap; gap:.65rem; margin-bottom:1rem; } .filters select, .search { min-height:2.5rem; border:1px solid #e2e8f0; border-radius:10px; background:#fff; color:#334155; padding:.55rem .7rem; } .search { display:flex; align-items:center; gap:.4rem; flex:1; min-width:190px; } .search input { border:0; outline:0; min-width:0; width:100%; }
+    .icon-btn { color:#64748b; background:transparent; border:0; padding:.35rem; letter-spacing:.1em; } .pagination { display:flex; justify-content:space-between; align-items:center; gap:1rem; padding-top:1rem; color:#64748b; font-size:.78rem; }
+    @media (max-width:620px) { .filters select { flex:1; } .pagination { align-items:flex-start; flex-direction:column; } }
+  `],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class TransactionsComponent {
+  readonly i18n = inject(I18nService);
+  readonly showForm = signal(false);
+  search = '';
+  draft = { amount: '', date: new Date().toISOString().slice(0, 10), category: 'category.food', account: 'account.sharedChecking', description: '' };
+  readonly rows: TransactionRow[] = [
+    { id: '1', description: 'transaction.electricity', category: 'category.utilities', account: 'account.sharedChecking', member: 'member.maria', date: 'date.aug12', amount: '$200.00', type: 'EXPENSE' },
+    { id: '2', description: 'transaction.grocery', category: 'category.food', account: 'account.sharedChecking', member: 'member.claudio', date: 'date.aug11', amount: '$126.40', type: 'EXPENSE' },
+    { id: '3', description: 'transaction.salary', category: 'category.salary', account: 'account.sharedChecking', member: 'member.claudio', date: 'date.aug10', amount: '$5,200.00', type: 'INCOME' },
+    { id: '4', description: 'transaction.gas', category: 'category.transportation', account: 'account.claudioPersonal', member: 'member.juan', date: 'date.aug09', amount: '$74.20', type: 'EXPENSE' },
+    { id: '5', description: 'transaction.streaming', category: 'category.subscriptions', account: 'account.sharedChecking', member: 'member.maria', date: 'date.aug08', amount: '$31.99', type: 'EXPENSE' },
+  ];
+  filtered() { const term = this.search.trim().toLowerCase(); return term ? this.rows.filter((row) => `${this.i18n.text(row.description)} ${this.i18n.text(row.category)} ${this.i18n.text(row.member)}`.toLowerCase().includes(term)) : this.rows; }
+  save() { this.showForm.set(false); this.draft = { amount: '', date: new Date().toISOString().slice(0, 10), category: 'category.food', account: 'account.sharedChecking', description: '' }; }
+}
