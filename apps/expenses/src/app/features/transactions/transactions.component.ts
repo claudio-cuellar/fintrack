@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { I18nService } from '../../core/i18n/i18n.service';
+import { I18nService } from '@fintrack/shared';
 
 interface TransactionRow { id: string; description: string; category: string; account: string; member: string; date: string; amount: string; type: 'EXPENSE' | 'INCOME'; }
 

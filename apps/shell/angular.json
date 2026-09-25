@@ -93,10 +93,11 @@
 							"buildTarget": "fintrack-shell:esbuild:development"
 						}
 					},
-					"defaultConfiguration": "development",
-					"options": {
-						"port": 4200
-					}
+						"defaultConfiguration": "development",
+						"options": {
+							"port": 4200,
+							"proxyConfig": "proxy.conf.json"
+						}
 				}
 			}
 		}

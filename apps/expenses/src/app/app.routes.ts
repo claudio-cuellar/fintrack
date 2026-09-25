@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard } from './core/auth/auth.guard';
+import { authGuard } from '@fintrack/shared';
 import { AppShellComponent } from './shared/ui/app-shell.component';
 import { LoginComponent } from './features/settings/login.component';
 import { remoteRoutes } from './remote.routes';

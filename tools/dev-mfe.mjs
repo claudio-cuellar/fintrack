@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { spawn } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync, unlinkSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -15,6 +16,7 @@ if (invalid.length) {
 }
 
 const ports = { expenses: 4201 };
+execFileSync('pnpm', ['--filter', '@fintrack/shared', 'build'], { cwd: root, stdio: 'inherit' });
 const base = JSON.parse(readFileSync(resolve(root, 'apps/shell/src/assets/mfe.manifest.json'), 'utf8'));
 const override = { version: base.version, remotes: Object.fromEntries(localApps.map((name) => [name, { url: `http://localhost:${ports[name]}/remoteEntry.json` }])) };
 writeFileSync(shellManifest, `${JSON.stringify(override, null, 2)}\n`);
@@ -26,6 +28,7 @@ const run = (workspace, script, args = []) => {
   return child;
 };
 
+run('@fintrack/api', 'dev');
 for (const name of localApps) run(`@fintrack/${name}`, 'dev');
 run('@fintrack/shell', 'dev');
 

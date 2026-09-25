@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { I18nService } from '../../core/i18n/i18n.service';
+import { I18nService } from '@fintrack/shared';
 
 interface TransactionView { id: string; description: string; category: string; member: string; date: string; amount: string; type: 'EXPENSE' | 'INCOME'; }
 

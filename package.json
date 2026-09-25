@@ -5,18 +5,19 @@
   "description": "Scalable multi-tenant personal and family expense tracking SaaS",
   "packageManager": "pnpm@10.10.0",
   "scripts": {
-    "dev": "pnpm --parallel --filter @fintrack/api --filter @fintrack/shell dev",
-    "dev:shell": "pnpm --filter @fintrack/shell dev",
-    "dev:expenses": "pnpm --filter @fintrack/expenses dev",
+    "dev": "node tools/dev-mfe.mjs",
+    "dev:api": "pnpm --filter @fintrack/api dev",
+    "dev:shell": "pnpm --filter @fintrack/shared build && pnpm --filter @fintrack/shell dev",
+    "dev:expenses": "pnpm --filter @fintrack/shared build && pnpm --filter @fintrack/expenses dev",
     "dev:local": "node tools/dev-mfe.mjs",
     "build": "pnpm -r build",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
-    "test": "pnpm -r test",
+    "test": "pnpm --filter @fintrack/shared build && pnpm -r test",
     "db:generate": "pnpm --filter @fintrack/api prisma:generate",
     "db:migrate": "pnpm --filter @fintrack/api prisma:migrate",
     "db:seed": "pnpm --filter @fintrack/api prisma:seed",
-    "build:shell": "pnpm --filter @fintrack/shell build",
-    "build:expenses": "pnpm --filter @fintrack/expenses build"
+    "build:shell": "pnpm --filter @fintrack/shared build && pnpm --filter @fintrack/shell build",
+    "build:expenses": "pnpm --filter @fintrack/shared build && pnpm --filter @fintrack/expenses build"
   }
 }

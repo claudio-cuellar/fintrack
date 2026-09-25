@@ -1,8 +1,8 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { AuthService } from '../../core/auth/auth.service';
-import { I18nService, Language } from '../../core/i18n/i18n.service';
-import { WorkspaceService } from '../../core/workspace/workspace.service';
+import { AuthService } from '@fintrack/shared';
+import { I18nService, Language } from '@fintrack/shared';
+import { WorkspaceService } from '@fintrack/shared';
 
 @Component({
   standalone: true,

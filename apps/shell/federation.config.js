@@ -3,6 +3,7 @@ const { withNativeFederation, shareAll } = require('@angular-architects/native-f
 module.exports = withNativeFederation({
   name: 'shell',
   shared: {
+    '@fintrack/shared': { singleton: true, strictVersion: true, requiredVersion: 'auto' },
     ...shareAll({ singleton: true, strictVersion: true, requiredVersion: 'auto' }),
   },
   skip: ['rxjs/ajax', 'rxjs/fetch', 'rxjs/testing', 'rxjs/webSocket'],
