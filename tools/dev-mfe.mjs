@@ -18,7 +18,18 @@ if (invalid.length) {
 const ports = { expenses: 4201 };
 execFileSync('pnpm', ['--filter', '@fintrack/shared', 'build'], { cwd: root, stdio: 'inherit' });
 const base = JSON.parse(readFileSync(resolve(root, 'apps/shell/src/assets/mfe.manifest.json'), 'utf8'));
-const override = { version: base.version, remotes: Object.fromEntries(localApps.map((name) => [name, { url: `http://localhost:${ports[name]}/remoteEntry.json` }])) };
+const override = {
+  version: base.version,
+  remotes: Object.fromEntries(
+    localApps.map((name) => [
+      name,
+      {
+        url: `http://localhost:${ports[name]}/remoteEntry.json`,
+        isLocal: true,
+      },
+    ]),
+  ),
+};
 writeFileSync(shellManifest, `${JSON.stringify(override, null, 2)}\n`);
 
 const children = [];

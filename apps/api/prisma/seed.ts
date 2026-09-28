@@ -1,7 +1,17 @@
+import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient, CategoryKind, MembershipRole, MembershipStatus, UserStatus, WorkspaceType, AccountType, AccountVisibility } from '@prisma/client';
 import * as argon2 from 'argon2';
+import { getDatabaseSslConfig } from '../src/infrastructure/prisma/prisma-ssl.util';
 
-const prisma = new PrismaClient();
+const connectionString = process.env.DATABASE_URL!;
+const adapter = new PrismaPg({
+  connectionString,
+  ssl: getDatabaseSslConfig(connectionString),
+});
+
+const prisma = new PrismaClient({
+  adapter,
+});
 
 async function main() {
   const passwordHash = await argon2.hash('ChangeMe123!ChangeMe123!', { type: argon2.argon2id });

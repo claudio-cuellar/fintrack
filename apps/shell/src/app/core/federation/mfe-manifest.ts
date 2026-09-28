@@ -3,11 +3,31 @@ import { initFederation, loadRemoteModule } from '@angular-architects/native-fed
 export interface MfeDefinition {
   url: string;
   enabled?: boolean;
+  isLocal?: boolean;
 }
 
 export interface MfeManifest {
   version: number;
   remotes: Record<string, MfeDefinition>;
+}
+
+export function isMfeLocal(definition?: MfeDefinition | null): boolean {
+  if (!definition || definition.enabled === false) {
+    return false;
+  }
+  if (typeof definition.isLocal === 'boolean') {
+    return definition.isLocal;
+  }
+  try {
+    const url = new URL(definition.url);
+    return (
+      url.hostname === 'localhost' ||
+      url.hostname === '127.0.0.1' ||
+      url.hostname === '0.0.0.0'
+    );
+  } catch {
+    return false;
+  }
 }
 
 const DEFAULT_MANIFEST = '/assets/mfe.manifest.json';

@@ -3,6 +3,7 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '@fintrack/shared';
 import { I18nService, Language } from '@fintrack/shared';
 import { WorkspaceService } from '@fintrack/shared';
+import { MfeRegistryService } from '../../core/federation/mfe-registry.service';
 
 @Component({
   standalone: true,
@@ -19,11 +20,24 @@ import { WorkspaceService } from '@fintrack/shared';
           </div>
         }
         <nav [attr.aria-label]="i18n.text('nav.primary')">
-          <a routerLink="/dashboard" routerLinkActive="active"><span>◒</span> {{ i18n.text('nav.dashboard') }}</a>
-          <a routerLink="/expenses" routerLinkActive="active"><span>↗</span> {{ i18n.text('nav.transactions') }}</a>
-          <a routerLink="/accounts" routerLinkActive="active"><span>▣</span> {{ i18n.text('nav.accounts') }}</a>
-          <a routerLink="/categories" routerLinkActive="active"><span>⌘</span> {{ i18n.text('nav.categories') }}</a>
-          <a routerLink="/family" routerLinkActive="active"><span>♧</span> {{ i18n.text('nav.family') }}</a>
+          <a routerLink="/dashboard" routerLinkActive="active"><span class="nav-icon">◒</span> {{ i18n.text('nav.dashboard') }}</a>
+          <a routerLink="/expenses" routerLinkActive="active">
+            <span class="nav-icon">↗</span>
+            <span class="nav-label">{{ i18n.text('nav.transactions') }}</span>
+            @if (mfe.isLocal('expenses')) {
+              <span
+                class="mfe-badge"
+                [title]="'Running locally (dev mode): ' + (mfe.getRemoteUrl('expenses') || '')"
+                aria-label="Running locally in dev mode"
+              >
+                <span class="mfe-dot" aria-hidden="true"></span>
+                <span class="mfe-text">local</span>
+              </span>
+            }
+          </a>
+          <a routerLink="/accounts" routerLinkActive="active"><span class="nav-icon">▣</span> {{ i18n.text('nav.accounts') }}</a>
+          <a routerLink="/categories" routerLinkActive="active"><span class="nav-icon">⌘</span> {{ i18n.text('nav.categories') }}</a>
+          <a routerLink="/family" routerLinkActive="active"><span class="nav-icon">♧</span> {{ i18n.text('nav.family') }}</a>
         </nav>
         <div class="sidebar-foot"><a class="settings-link" href="#" (click)="logout(); $event.preventDefault()">{{ i18n.text('auth.signOut') }}</a></div>
       </aside>
@@ -51,9 +65,42 @@ import { WorkspaceService } from '@fintrack/shared';
     .workspace-card .pill { justify-self:start; color:#bfdbfe; background:rgba(37,99,235,.25); }
     nav { display:grid; gap:.25rem; }
     nav a, .settings-link { color:#94a3b8; padding:.7rem .75rem; border-radius:10px; text-decoration:none; display:flex; align-items:center; gap:.7rem; font-weight:650; }
-    nav a span { color:#64748b; width:1rem; text-align:center; }
+    nav a .nav-icon { color:#64748b; width:1rem; text-align:center; flex-shrink:0; }
     nav a:hover, nav a.active { background:#1e293b; color:#fff; }
-    nav a.active span { color:#60a5fa; }
+    nav a.active .nav-icon { color:#60a5fa; }
+    .nav-label { white-space:nowrap; }
+    .mfe-badge {
+      margin-left: auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.15rem 0.45rem;
+      border-radius: 9999px;
+      font-size: 0.62rem;
+      font-weight: 750;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      background: rgba(34, 197, 94, 0.15);
+      color: #4ade80;
+      border: 1px solid rgba(34, 197, 94, 0.35);
+      line-height: 1;
+    }
+    .mfe-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #22c55e;
+      box-shadow: 0 0 6px rgba(34, 197, 94, 0.85);
+      animation: mfe-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      flex-shrink: 0;
+    }
+    .mfe-text {
+      color: #4ade80;
+    }
+    @keyframes mfe-pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.35; }
+    }
     .sidebar-foot { margin-top:auto; border-top:1px solid rgba(255,255,255,.1); padding-top:.8rem; }
     .settings-link:hover { color:#fff; }
     .content { min-width:0; }
@@ -66,7 +113,22 @@ import { WorkspaceService } from '@fintrack/shared';
     .language-control select { border:1px solid #cbd5e1; border-radius:8px; background:#fff; color:#334155; padding:.35rem .45rem; font:inherit; cursor:pointer; }
     .user-chip { display:flex; align-items:center; gap:.55rem; color:#334155; font-size:.85rem; font-weight:700; }
     .avatar { display:grid; place-items:center; width:2rem; height:2rem; border-radius:50%; background:#dbeafe; color:#1d4ed8; font-size:.72rem; }
-    @media (max-width:760px) { .shell { display:block; } .sidebar { min-height:unset; padding:.75rem; display:block; } .brand { margin-bottom:.7rem; } .workspace-card { display:none; } nav { display:flex; overflow-x:auto; gap:.3rem; } nav a { white-space:nowrap; padding:.55rem .7rem; } nav a span { display:none; } .sidebar-foot { display:none; } .topbar { padding:0 1rem; min-height:3.6rem; } .topbar-page, .topbar-divider, .language-control span { display:none; } .topbar-actions { gap:.5rem; } .user-chip span:last-child { display:none; } }
+    @media (max-width:760px) {
+      .shell { display:block; }
+      .sidebar { min-height:unset; padding:.75rem; display:block; }
+      .brand { margin-bottom:.7rem; }
+      .workspace-card { display:none; }
+      nav { display:flex; overflow-x:auto; gap:.3rem; }
+      nav a { white-space:nowrap; padding:.55rem .7rem; }
+      nav a .nav-icon { display:none; }
+      .mfe-badge .mfe-text { display:none; }
+      .mfe-badge { padding: 0.2rem; margin-left: 0.25rem; }
+      .sidebar-foot { display:none; }
+      .topbar { padding:0 1rem; min-height:3.6rem; }
+      .topbar-page, .topbar-divider, .language-control span { display:none; }
+      .topbar-actions { gap:.5rem; }
+      .user-chip span:last-child { display:none; }
+    }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -74,6 +136,7 @@ export class AppShellComponent {
   readonly auth = inject(AuthService);
   readonly i18n = inject(I18nService);
   readonly workspace = inject(WorkspaceService);
+  readonly mfe = inject(MfeRegistryService);
   logout() { this.auth.logout(); }
   changeLanguage(event: Event): void { this.i18n.setLanguage((event.target as HTMLSelectElement).value as Language); }
 }
